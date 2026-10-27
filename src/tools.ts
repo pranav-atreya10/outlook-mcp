@@ -55,7 +55,36 @@ function summarizeEvent(e: any) {
     attendees: (e.attendees ?? []).map((a: any) => `${a.emailAddress?.address} (${a.status?.response ?? "none"})`),
     onlineMeetingUrl: e.onlineMeeting?.joinUrl ?? undefined,
     preview: e.bodyPreview || undefined,
+    // "occurrence" = one date of a repeating event; seriesId points at the whole series
+    repeats: e.type && e.type !== "singleInstance" ? e.type : undefined,
+    seriesId: e.seriesMasterId ?? (e.type === "seriesMaster" ? e.id : undefined),
   };
+}
+
+const DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
+
+const recurrenceSchema = z
+  .object({
+    frequency: z.enum(["daily", "weekly", "monthly"]),
+    interval: z.number().int().min(1).default(1).describe("Every N days/weeks/months"),
+    daysOfWeek: z.array(z.enum(DAYS)).optional().describe("For weekly: which days. Defaults to the start date's day."),
+    endDate: z.string().optional().describe("Last date it can happen, like 2027-03-24. Leave out to repeat forever."),
+    occurrences: z.number().int().min(1).optional().describe("Or: stop after this many times"),
+  })
+  .describe("Make the event repeat");
+
+function toGraphRecurrence(r: z.infer<typeof recurrenceSchema>, startDateTime: string) {
+  const startDate = startDateTime.slice(0, 10);
+  const dayOfStart = DAYS[new Date(`${startDate}T12:00:00Z`).getUTCDay()];
+  const pattern: Record<string, unknown> = { type: r.frequency === "monthly" ? "absoluteMonthly" : r.frequency, interval: r.interval };
+  if (r.frequency === "weekly") pattern.daysOfWeek = r.daysOfWeek?.length ? r.daysOfWeek : [dayOfStart];
+  if (r.frequency === "monthly") pattern.dayOfMonth = Number(startDate.slice(8, 10));
+  const range = r.endDate
+    ? { type: "endDate", startDate, endDate: r.endDate }
+    : r.occurrences
+      ? { type: "numbered", startDate, numberOfOccurrences: r.occurrences }
+      : { type: "noEnd", startDate };
+  return { pattern, range };
 }
 
 const folderEnum = z
@@ -302,7 +331,7 @@ export function buildServer(props: Props, defaultTimeZone: string): McpServer {
           endDateTime: end,
           $top: String(limit),
           $orderby: "start/dateTime",
-          $select: "id,subject,start,end,isAllDay,location,organizer,attendees,onlineMeeting,bodyPreview",
+          $select: "id,subject,start,end,isAllDay,location,organizer,attendees,onlineMeeting,bodyPreview,type,seriesMasterId",
         },
         headers: tzHeader(timeZone),
       });
@@ -358,12 +387,15 @@ export function buildServer(props: Props, defaultTimeZone: string): McpServer {
   server.registerTool(
     "create_event",
     {
-      description: "Add an event to the Outlook calendar. If attendees are given, they get an invite email.",
-      inputSchema: z.object(eventFields),
+      description:
+        "Add an event to the Outlook calendar. Use `repeat` for a repeating event (one series, one invite). If attendees are given, they get an invite email.",
+      inputSchema: z.object({ ...eventFields, repeat: recurrenceSchema.optional() }),
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
     },
-    safe(async (args) => {
-      const e = await graph(token, "/me/events", { method: "POST", body: eventBody(args), headers: tzHeader(args.timeZone) });
+    safe(async ({ repeat, ...args }) => {
+      const body = eventBody(args);
+      if (repeat) body.recurrence = toGraphRecurrence(repeat, args.start);
+      const e = await graph(token, "/me/events", { method: "POST", body, headers: tzHeader(args.timeZone) });
       return ok({ created: true, ...summarizeEvent(e), link: e.webLink });
     }),
   );
@@ -399,15 +431,22 @@ export function buildServer(props: Props, defaultTimeZone: string): McpServer {
   server.registerTool(
     "delete_event",
     {
-      description: "Delete an event from the Outlook calendar. If you organized it with attendees, they get a cancellation. Confirm with the user first.",
+      description:
+        "Delete an event from the Outlook calendar. For a repeating event, deletes just that one date unless entireSeries is true. If you organized it with attendees, they get a cancellation. Confirm with the user first.",
       inputSchema: z.object({
         id: z.string(),
+        entireSeries: z.boolean().default(false).describe("For repeating events: delete every date, past and future"),
         cancelMessage: z.string().optional().describe("Optional note sent to attendees"),
       }),
       annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true },
     },
-    safe(async ({ id, cancelMessage }) => {
-      const path = `/me/events/${encodeURIComponent(id)}`;
+    safe(async ({ id, entireSeries, cancelMessage }) => {
+      let target = id;
+      if (entireSeries) {
+        const e = await graph(token, `/me/events/${encodeURIComponent(id)}`, { query: { $select: "seriesMasterId" } });
+        target = e.seriesMasterId ?? id;
+      }
+      const path = `/me/events/${encodeURIComponent(target)}`;
       if (cancelMessage) {
         // cancel only works for meetings you organized; fall back to delete otherwise
         try {
@@ -418,7 +457,35 @@ export function buildServer(props: Props, defaultTimeZone: string): McpServer {
         }
       }
       await graph(token, path, { method: "DELETE" });
-      return ok("Event deleted.");
+      return ok(entireSeries ? "Whole series deleted." : "Event deleted.");
+    }),
+  );
+
+  server.registerTool(
+    "stop_repeating_event",
+    {
+      description:
+        "End a repeating event after a given date: keeps past dates, removes all later ones. Pass any date's id from the series. Confirm with the user first.",
+      inputSchema: z.object({
+        id: z.string().describe("Id of any date in the series (from list_events)"),
+        lastDate: z.string().describe("Last date to keep, like 2026-10-24. Dates after this are removed."),
+      }),
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true },
+    },
+    safe(async ({ id, lastDate }) => {
+      const e = await graph(token, `/me/events/${encodeURIComponent(id)}`, { query: { $select: "seriesMasterId,type" } });
+      const masterId = e.seriesMasterId ?? (e.type === "seriesMaster" ? id : undefined);
+      if (!masterId) return { content: [{ type: "text", text: "That event doesn't repeat." }], isError: true };
+      const master = await graph(token, `/me/events/${encodeURIComponent(masterId)}`, { query: { $select: "subject,recurrence" } });
+      const { pattern, range } = master.recurrence;
+      if (lastDate < range.startDate) {
+        return { content: [{ type: "text", text: `The series starts ${range.startDate}, so nothing would be kept. Use delete_event with entireSeries instead.` }], isError: true };
+      }
+      await graph(token, `/me/events/${encodeURIComponent(masterId)}`, {
+        method: "PATCH",
+        body: { recurrence: { pattern, range: { type: "endDate", startDate: range.startDate, endDate: lastDate, recurrenceTimeZone: range.recurrenceTimeZone } } },
+      });
+      return ok(`"${master.subject}" now ends on ${lastDate}. Later dates were removed.`);
     }),
   );
 
