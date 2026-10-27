@@ -1,6 +1,6 @@
 # Outlook connector for Claude (personal accounts)
 
-Lets Claude read, search, send and reply to your Outlook email, and read, add, change and delete your Outlook calendar events. It works with @outlook.com, @hotmail.com and @live.com accounts.
+Lets Claude read, search, send and reply to your Outlook email, and read, add, change and delete your Outlook calendar events. It works with @outlook.com, @hotmail.com and @live.com accounts. It lives at **https://outlook-mcp.thoughtstudio.xyz**.
 
 **15 tools:** whoami, search_emails, read_email, send_email, draft_email, reply_email, forward_email, update_email, list_mail_folders, list_events, get_event, create_event, update_event, delete_event, respond_to_event
 
@@ -20,8 +20,7 @@ This gives your connector permission to sign in with Microsoft.
 3. Fill it in:
    - **Name:** `Claude Outlook connector`
    - **Supported account types:** **Personal Microsoft accounts only**
-   - **Redirect URI:** choose **Web** and enter `https://outlook-mcp.<your-subdomain>.workers.dev/callback`
-     (You'll get the exact address in step 3. You can come back and fix it.)
+   - **Redirect URI:** choose **Web** and enter `https://outlook-mcp.thoughtstudio.xyz/callback`
 4. Click **Register**. Copy the **Application (client) ID**.
 5. Go to **Certificates & secrets**, then **New client secret**. Pick 24 months, click Add, and copy the **Value** right away. It only shows once.
 6. Go to **API permissions**, then **Add a permission**, then **Microsoft Graph**, then **Delegated**. Add:
@@ -37,13 +36,13 @@ npx wrangler secret put MS_CLIENT_ID      # paste the Application (client) ID
 npx wrangler secret put MS_CLIENT_SECRET  # paste the secret Value
 npm run deploy
 ```
-When it finishes, it prints your web address, like `https://outlook-mcp.sam123.workers.dev`. Check that the redirect URI in step 1 matches it exactly, with `/callback` on the end.
+Because thoughtstudio.xyz already uses Cloudflare, deploying sets up `outlook-mcp.thoughtstudio.xyz` for you, HTTPS lock included. You don't need to do anything in Namecheap.
 
-Open that address in your browser. You should see "Outlook connector is running ✅".
+Wait a minute, then open **https://outlook-mcp.thoughtstudio.xyz**. You should see "Outlook connector is running ✅".
 
 ### 4. Add it to Claude
 1. In Claude, go to **Settings → Connectors → Add custom connector**.
-2. Name: `Outlook`. URL: `https://outlook-mcp.<your-subdomain>.workers.dev/mcp`
+2. Name: `Outlook`. URL: `https://outlook-mcp.thoughtstudio.xyz/mcp`
 3. Click **Connect**, click **Continue to Microsoft**, sign in, and accept.
 
 Done. Try asking: *"What's on my Outlook calendar this week?"*
@@ -51,7 +50,8 @@ Done. Try asking: *"What's on my Outlook calendar this week?"*
 ---
 
 ## If something breaks
-- **"redirect_uri mismatch" from Microsoft:** the redirect URI in step 1 doesn't exactly match your address + `/callback`.
+- **"redirect_uri mismatch" from Microsoft:** the redirect URI must be exactly `https://outlook-mcp.thoughtstudio.xyz/callback`.
+- **Deploy says the domain isn't on your account:** make sure thoughtstudio.xyz shows up under **Websites** in the same Cloudflare account you logged in to with `wrangler login`.
 - **"This account isn't allowed":** fix the email in `ALLOWED_EMAILS` and run `npm run deploy` again.
 - **Tools stop working after a long time:** disconnect and reconnect the connector in Claude.
 - **See errors:** run `npx wrangler tail` while you use it.

@@ -4,6 +4,10 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // Lives at your own domain. thoughtstudio.xyz uses Cloudflare, so deploy sets this up for you.
+  "routes": [{ "pattern": "outlook-mcp.thoughtstudio.xyz", "custom_domain": true }],
+  // Turn off the extra workers.dev address so there's only one address to sign in through.
+  "workers_dev": false,
   "kv_namespaces": [
     {
       "binding": "OAUTH_KV",
