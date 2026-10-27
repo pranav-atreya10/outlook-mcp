@@ -1,7 +1,7 @@
 // Outlook connector for Claude (personal Microsoft accounts).
 //
 // How it works:
-//   1. Claude connects to https://outlook-mcp.atreyapranav.com/mcp and gets told to sign in.
+//   1. Claude connects to https://<your-worker>/mcp and gets told to sign in.
 //   2. You approve on a small page here, then sign in with Microsoft.
 //   3. Microsoft sends you back to /callback; we keep your Microsoft tokens (encrypted)
 //      and Claude gets its own token for this server.
@@ -16,14 +16,12 @@ import OAuthProvider, {
   type ConsentDescription,
   type OAuthHelpers,
 } from "@cloudflare/workers-oauth-provider";
-import { createMcpHandler } from "@modelcontextprotocol/server";
-import { waitUntil } from "@vercel/functions";
-import { getKV, type KVLike } from "./kv";
+import { createMcpHandler } from "agents/mcp/server";
 import { exchangeCode, getMe, microsoftAuthorizeUrl, MicrosoftTokenError, refreshTokens } from "./microsoft";
 import { buildServer, type Props } from "./tools";
 
 interface Env {
-  OAUTH_KV: KVLike;
+  OAUTH_KV: KVNamespace;
   OAUTH_PROVIDER: OAuthHelpers;
   MS_CLIENT_ID: string;
   MS_CLIENT_SECRET: string;
@@ -35,10 +33,12 @@ interface Env {
 // ---------------- the MCP endpoint (/mcp) ----------------
 
 const mcpApi = {
-  async fetch(request: Request, env: Env, ctx: { props: Props }) {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext & { props: Props }) {
     const props = ctx.props;
-    const handler = createMcpHandler(() => buildServer(props, env.TIME_ZONE || "America/New_York"));
-    return handler.fetch(request);
+    const handler = createMcpHandler(() => buildServer(props, env.TIME_ZONE || "America/New_York"), {
+      route: "/mcp",
+    });
+    return handler(request, env, ctx);
   },
 };
 
@@ -203,32 +203,15 @@ const defaultHandler = {
 
 // ---------------- wire it all together ----------------
 
-// The provider needs this server's public address: PUBLIC_URL if set, otherwise the request's.
+// The provider needs this server's public address, which we learn from the first request.
 let provider: OAuthProvider<Env> | undefined;
 
-function getEnv(): Env {
-  return {
-    OAUTH_KV: getKV(),
-    OAUTH_PROVIDER: undefined as unknown as OAuthHelpers, // filled in by the library per request
-    MS_CLIENT_ID: process.env.MS_CLIENT_ID ?? "",
-    MS_CLIENT_SECRET: process.env.MS_CLIENT_SECRET ?? "",
-    ALLOWED_EMAILS: process.env.ALLOWED_EMAILS,
-    TIME_ZONE: process.env.TIME_ZONE,
-  };
-}
-
-/** Handles every request to the site: sign-in pages, OAuth endpoints and /mcp. */
-export async function handle(request: Request): Promise<Response> {
-  const origin = (process.env.PUBLIC_URL || new URL(request.url).origin).replace(/\/+$/, "");
-  // Make sure the library sees the public address even behind Vercel's proxy.
-  const url = new URL(request.url);
-  const publicUrl = new URL(url.pathname + url.search, origin);
-  if (publicUrl.href !== url.href) request = new Request(publicUrl, request);
-
-  provider ??= makeProvider(origin);
-  const ctx = { waitUntil, passThroughOnException() {}, props: {} } as any;
-  return provider.fetch(request, getEnv() as any, ctx);
-}
+export default {
+  fetch(request: Request, env: Env, ctx: ExecutionContext) {
+    provider ??= makeProvider(new URL(request.url).origin);
+    return provider.fetch(request, env, ctx);
+  },
+};
 
 const makeProvider = (origin: string) => new OAuthProvider<Env>({
   resourceMetadata: {
@@ -242,8 +225,7 @@ const makeProvider = (origin: string) => new OAuthProvider<Env>({
   authorizeEndpoint: "/authorize",
   tokenEndpoint: "/token",
   clientRegistrationEndpoint: "/register",
-  // Claude signs up through /register (dynamic client registration).
-  clientIdMetadataDocumentEnabled: false,
+  clientIdMetadataDocumentEnabled: true,
 
   // Keep Claude's token lifetime in step with Microsoft's, and refresh Microsoft's
   // token whenever Claude refreshes ours. This is what keeps you signed in.

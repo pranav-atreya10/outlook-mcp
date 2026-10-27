@@ -1,45 +1,14 @@
 {
   "compilerOptions": {
     "target": "es2022",
-    "lib": [
-      "es2022",
-      "dom",
-      "dom.iterable"
-    ],
-    "module": "esnext",
+    "module": "es2022",
     "moduleResolution": "bundler",
-    "types": [
-      "node"
-    ],
+    "lib": ["es2022"],
+    "types": ["@cloudflare/workers-types"],
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "isolatedModules": true,
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "jsx": "react-jsx",
-    "incremental": true,
-    "allowJs": false,
-    "paths": {
-      "cloudflare:workers": [
-        "./lib/cloudflare-workers-stub.ts"
-      ]
-    },
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ]
+    "isolatedModules": true
   },
-  "include": [
-    "next-env.d.ts",
-    "app",
-    "lib",
-    "next.config.ts",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["src"]
 }

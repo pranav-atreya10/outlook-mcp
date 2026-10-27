@@ -1,7 +1,7 @@
 // Quick self-test: loads the tools with fake sign-in info and lists them.
 // Run with: npx tsx test/listtools.ts
 import { createMcpHandler } from "@modelcontextprotocol/server";
-import { buildServer } from "../lib/tools.ts";
+import { buildServer } from "../src/tools";
 const h = createMcpHandler(() => buildServer({ email: "x@outlook.com", name: "X", accessToken: "fake", refreshToken: "r", expiresAt: 0 }, "America/New_York"));
 const post = (body: any) => h.fetch(new Request("http://localhost/mcp", { method: "POST", headers: { "content-type": "application/json", accept: "application/json, text/event-stream", "mcp-protocol-version": "2025-06-18" }, body: JSON.stringify(body) }));
 const r1 = await post({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "t", version: "1" } } });

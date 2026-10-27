@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "outlook-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV",
+      // Already created on your Cloudflare account
+      "id": "b0c8ce4857174932986843bc5ec16005"
+    }
+  ],
+  "vars": {
+    // Your calendar's time zone
+    "TIME_ZONE": "America/New_York",
+    // Only these Microsoft emails can sign in (comma-separated). Put your Outlook email here.
+    "ALLOWED_EMAILS": ""
+  },
+  "observability": { "enabled": true }
+}

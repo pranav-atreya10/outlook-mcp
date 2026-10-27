@@ -1,30 +1,22 @@
 {
   "name": "outlook-mcp",
-  "version": "2.0.0",
+  "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "next dev --webpack",
-    "build": "next build --webpack",
-    "start": "next start",
-    "typecheck": "tsc --noEmit",
-    "test:tools": "tsx test/listtools.mts",
-    "test:e2e": "tsx --import ./test/stub-loader.mjs test/e2e.mts"
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@cloudflare/workers-oauth-provider": "1.2.4",
     "@modelcontextprotocol/server": "2.3.1",
-    "@upstash/redis": "1.40.0",
-    "@vercel/functions": "3.10.4",
-    "next": "16.4.3",
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
+    "agents": "0.30.1",
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
-    "@types/react": "^19.2.0",
-    "tsx": "4.20.6",
-    "typescript": "^5.9.3"
-  },
-  "type": "module"
+    "@cloudflare/workers-types": "^5.20261001.0",
+    "typescript": "^5.9.3",
+    "wrangler": "4.153.0"
+  }
 }
