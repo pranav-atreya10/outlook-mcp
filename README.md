@@ -1,6 +1,6 @@
 # Outlook connector for Claude (personal accounts)
 
-Lets Claude read, search, send and reply to your Outlook email, and read, add, change and delete your Outlook calendar events. It works with @outlook.com, @hotmail.com and @live.com accounts. It runs on **Vercel** at **mcp.atreyapranav.com**.
+Lets Claude read, search, send and reply to your Outlook email, and read, add, change and delete your Outlook calendar events. It works with @outlook.com, @hotmail.com and @live.com accounts. It runs on **Vercel** at **mcp.atreyapranav.com** (domain DNS at whois.com).
 
 **15 tools:** whoami, search_emails, read_email, send_email, draft_email, reply_email, forward_email, update_email, list_mail_folders, list_events, get_event, create_event, update_event, delete_event, respond_to_event
 
@@ -11,7 +11,33 @@ Lets Claude read, search, send and reply to your Outlook email, and read, add, c
 ### 1. Put it on Vercel
 1. On vercel.com, click **Add New → Project** and import this GitHub repo (`outlook-mcp`). Keep the default settings and click **Deploy**. The first deploy will show an error page until the next steps are done. That's normal.
 2. In the project, open **Storage → Create Database → Upstash (Redis)**. Pick the free plan and connect it to this project. This is where sign-ins are kept.
-3. Open **Settings → Domains**, add `mcp.atreyapranav.com`. Your domain is already on Vercel, so it should connect by itself.
+3. Set up the domain (see **Domain setup** right below).
+
+### Domain setup: `mcp.atreyapranav.com`
+Your domain's settings (DNS) are managed at **whois.com**, not Vercel. So it takes two steps: tell Vercel about the address, then point it at Vercel from whois.com.
+
+**A. In Vercel**
+1. Open the `outlook-mcp` project, then **Settings → Domains**.
+2. Type `mcp.atreyapranav.com` and click **Add**. Choose to connect it to **Production**.
+3. It will say **Invalid Configuration**. That's expected until step B is done.
+
+**B. In whois.com**
+1. Log in to whois.com, go to **My Domains**, then `atreyapranav.com`, then **Manage DNS** (or **DNS Management**).
+2. Add a new record:
+
+   | Type | Host / Name | Value / Points to | TTL |
+   |---|---|---|---|
+   | `CNAME` | `mcp` | `cname.vercel-dns.com` | default (or 1 hour) |
+
+   - Type only `mcp` in the Host box, not the whole address.
+   - If whois.com won't accept the trailing dot, leave it off.
+3. Save.
+
+**C. Check it**
+- Go back to Vercel's **Domains** page. Within a few minutes to an hour, it should change to **Valid Configuration** ✅. Vercel also sets up the HTTPS lock for you.
+- Then open **https://mcp.atreyapranav.com** in your browser.
+
+This only adds the `mcp` address. Your main website at atreyapranav.com isn't touched.
 
 ### 2. Register an app with Microsoft
 1. Go to **https://entra.microsoft.com** and sign in with your Outlook account. (If that doesn't work, use **https://portal.azure.com**, then App registrations.)
