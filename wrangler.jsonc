@@ -19,7 +19,7 @@
     // Your calendar's time zone
     "TIME_ZONE": "America/New_York",
     // Only these Microsoft emails can sign in (comma-separated). Put your Outlook email here.
-    "ALLOWED_EMAILS": ""
+    "ALLOWED_EMAILS": "atreya.pranav@outlook.com"
   },
   "observability": { "enabled": true }
 }
