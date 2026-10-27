@@ -1,7 +1,7 @@
 // Outlook connector for Claude (personal Microsoft accounts).
 //
 // How it works:
-//   1. Claude connects to https://mcp.atreyapranav.com/mcp and gets told to sign in.
+//   1. Claude connects to https://outlook-mcp.atreyapranav.com/mcp and gets told to sign in.
 //   2. You approve on a small page here, then sign in with Microsoft.
 //   3. Microsoft sends you back to /callback; we keep your Microsoft tokens (encrypted)
 //      and Claude gets its own token for this server.

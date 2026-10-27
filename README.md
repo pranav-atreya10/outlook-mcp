@@ -1,6 +1,6 @@
 # Outlook connector for Claude (personal accounts)
 
-Lets Claude read, search, send and reply to your Outlook email, and read, add, change and delete your Outlook calendar events. It works with @outlook.com, @hotmail.com and @live.com accounts. It runs on **Vercel** at **mcp.atreyapranav.com** (domain DNS at whois.com).
+Lets Claude read, search, send and reply to your Outlook email, and read, add, change and delete your Outlook calendar events. It works with @outlook.com, @hotmail.com and @live.com accounts. It runs on **Vercel** at **outlook-mcp.atreyapranav.com** (domain DNS at whois.com).
 
 **15 tools:** whoami, search_emails, read_email, send_email, draft_email, reply_email, forward_email, update_email, list_mail_folders, list_events, get_event, create_event, update_event, delete_event, respond_to_event
 
@@ -13,12 +13,12 @@ Lets Claude read, search, send and reply to your Outlook email, and read, add, c
 2. In the project, open **Storage → Create Database → Upstash (Redis)**. Pick the free plan and connect it to this project. This is where sign-ins are kept.
 3. Set up the domain (see **Domain setup** right below).
 
-### Domain setup: `mcp.atreyapranav.com`
+### Domain setup: `outlook-mcp.atreyapranav.com`
 Your domain's settings (DNS) are managed at **whois.com**, not Vercel. So it takes two steps: tell Vercel about the address, then point it at Vercel from whois.com.
 
 **A. In Vercel**
 1. Open the `outlook-mcp` project, then **Settings → Domains**.
-2. Type `mcp.atreyapranav.com` and click **Add**. Choose to connect it to **Production**.
+2. Type `outlook-mcp.atreyapranav.com` and click **Add**. Choose to connect it to **Production**.
 3. It will say **Invalid Configuration**. That's expected until step B is done.
 
 **B. In whois.com**
@@ -27,24 +27,24 @@ Your domain's settings (DNS) are managed at **whois.com**, not Vercel. So it tak
 
    | Type | Host / Name | Value / Points to | TTL |
    |---|---|---|---|
-   | `CNAME` | `mcp` | `cname.vercel-dns.com` | default (or 1 hour) |
+   | `CNAME` | `outlook-mcp` | `cname.vercel-dns.com` | default (or 1 hour) |
 
-   - Type only `mcp` in the Host box, not the whole address.
+   - Type only `outlook-mcp` in the Host box, not the whole address.
    - If whois.com won't accept the trailing dot, leave it off.
 3. Save.
 
 **C. Check it**
 - Go back to Vercel's **Domains** page. Within a few minutes to an hour, it should change to **Valid Configuration** ✅. Vercel also sets up the HTTPS lock for you.
-- Then open **https://mcp.atreyapranav.com** in your browser.
+- Then open **https://outlook-mcp.atreyapranav.com** in your browser.
 
-This only adds the `mcp` address. Your main website at atreyapranav.com isn't touched.
+This only adds the `outlook-mcp` address. Your main website at atreyapranav.com isn't touched.
 
 ### 2. Register an app with Microsoft
 1. Go to **https://entra.microsoft.com** and sign in with your Outlook account. (If that doesn't work, use **https://portal.azure.com**, then App registrations.)
 2. Open **App registrations**, then click **New registration**:
    - **Name:** `Claude Outlook connector`
    - **Supported account types:** **Personal Microsoft accounts only**
-   - **Redirect URI:** choose **Web** and enter `https://mcp.atreyapranav.com/callback`
+   - **Redirect URI:** choose **Web** and enter `https://outlook-mcp.atreyapranav.com/callback`
 3. Click **Register**. Copy the **Application (client) ID**.
 4. Go to **Certificates & secrets**, then **New client secret**. Pick 24 months, click Add, and copy the **Value** right away. It only shows once.
 5. Go to **API permissions**, then **Add a permission**, then **Microsoft Graph**, then **Delegated**. Add:
@@ -58,16 +58,16 @@ Go to **Settings → Environment Variables** and add:
 | `MS_CLIENT_ID` | the Application (client) ID |
 | `MS_CLIENT_SECRET` | the secret Value (mark it **Sensitive**) |
 | `ALLOWED_EMAILS` | your Outlook email, so only you can sign in |
-| `PUBLIC_URL` | `https://mcp.atreyapranav.com` |
+| `PUBLIC_URL` | `https://outlook-mcp.atreyapranav.com` |
 | `TIME_ZONE` | `America/New_York` (optional) |
 
 Then go to **Deployments**, open the latest one, click **⋯ → Redeploy**.
 
-Open **https://mcp.atreyapranav.com**. You should see "Outlook connector is running ✅".
+Open **https://outlook-mcp.atreyapranav.com**. You should see "Outlook connector is running ✅".
 
 ### 4. Add it to Claude
 1. In Claude, go to **Settings → Connectors → Add custom connector**.
-2. Name: `Outlook`. URL: `https://mcp.atreyapranav.com/mcp`
+2. Name: `Outlook`. URL: `https://outlook-mcp.atreyapranav.com/mcp`
 3. Click **Connect**, click **Continue to Microsoft**, sign in, and accept.
 
 Try asking: *"What's on my Outlook calendar this week?"*
@@ -77,7 +77,7 @@ From now on, every push to GitHub goes live on its own.
 ---
 
 ## If something breaks
-- **"redirect_uri mismatch" from Microsoft:** the redirect URI must be exactly `https://mcp.atreyapranav.com/callback`.
+- **"redirect_uri mismatch" from Microsoft:** the redirect URI must be exactly `https://outlook-mcp.atreyapranav.com/callback`.
 - **"Storage is missing":** connect Upstash Redis to the project (step 1.2), then redeploy.
 - **"This account isn't allowed":** fix `ALLOWED_EMAILS`, then redeploy.
 - **Tools stop working:** disconnect and reconnect the connector in Claude.
