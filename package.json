@@ -1,12 +1,27 @@
 {
   "name": "outlook-mcp",
   "version": "1.0.0",
+  "description": "A Claude connector (MCP server) for personal Outlook email and calendar, hosted on Cloudflare Workers",
+  "license": "MIT",
+  "author": "Pranav Atreya",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pranav-atreya10/outlook-mcp"
+  },
+  "keywords": [
+    "mcp",
+    "claude",
+    "outlook",
+    "microsoft-graph",
+    "cloudflare-workers"
+  ],
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "npx -y tsx test/listtools.ts"
   },
   "dependencies": {
     "@cloudflare/workers-oauth-provider": "1.2.4",
