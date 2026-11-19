@@ -3,6 +3,8 @@
 Thanks for wanting to help! Bug reports, ideas and code changes are all welcome.
 
 ## Reporting a bug or asking for a feature
+For security problems, see [SECURITY.md](SECURITY.md) instead.
+
 Open an [issue](https://github.com/pranav-atreya10/outlook-mcp/issues). For bugs, say what you asked Claude to do, what happened, and what you expected. Paste any errors from `npx wrangler tail`, but **remove email addresses, message contents and tokens first**.
 
 ## Making a change
@@ -14,7 +16,7 @@ Open an [issue](https://github.com/pranav-atreya10/outlook-mcp/issues). For bugs
    npm run typecheck
    npm test
    ```
-5. If you can, try it for real on your own deployed copy (see the README).
+5. If you can, try it for real on your own copy (`npm run setup`).
 6. Open a pull request that explains what you changed and why.
 
 Please keep each pull request to one change so it's easy to review.
@@ -28,11 +30,11 @@ Copy the pattern of an existing tool in `src/tools.ts`:
 - Update the tool count and list in the README.
 
 ## Ideas for a first contribution
-- Add a GitHub Actions workflow that runs `npm run typecheck` and `npm test` on every pull request.
+- Add a tool to search for a contact's email address.
 - Add a tool to move an email to a different folder.
 - Add a tool to download or list email attachments.
 - Add a tool to find free time on the calendar (Microsoft Graph has a `findMeetingTimes` endpoint).
-- Turn `test/listtools.ts` into real tests with checks that fail when something breaks.
+- Support work/school accounts (see the comment at the top of `src/microsoft.ts`).
 
 ## Be kind
 Be respectful and helpful to everyone here. Disagree about code, not people.

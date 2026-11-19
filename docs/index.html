@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>outlook-mcp — Connect your Outlook to Claude</title>
+<meta name="description" content="A free, open-source connector that lets Claude read, search and send your Outlook email and manage your calendar. You host it yourself with one command.">
+<meta property="og:title" content="outlook-mcp — Connect your Outlook to Claude">
+<meta property="og:description" content="Free, open-source, self-hosted. Set up with one command.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📬</text></svg>">
+<style>
+  :root{
+    --bg:#faf9f6; --ink:#1c1b19; --muted:#6b6862; --line:#e6e3dc; --card:#ffffff;
+    --accent:#2f5d50; --accent-soft:#e7efe9; --code:#1f2420; --code-ink:#e9efe9;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{--bg:#141513; --ink:#ecebe6; --muted:#a19e96; --line:#2a2b28; --card:#1b1c1a; --accent:#8cc7b1; --accent-soft:#1f2b26; --code:#0d0f0d;}
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+  a{color:var(--accent)}
+  .wrap{max-width:880px;margin:0 auto;padding:0 22px}
+  nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0}
+  .logo{font-weight:700;letter-spacing:-.01em;text-decoration:none;color:var(--ink)}
+  nav a.gh{font-size:15px;text-decoration:none;border:1px solid var(--line);padding:7px 14px;border-radius:999px;color:var(--ink)}
+  header{padding:56px 0 40px}
+  .tag{display:inline-block;font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px;margin-bottom:18px}
+  h1{font-family:ui-serif,Georgia,"Times New Roman",serif;font-weight:600;font-size:clamp(36px,6vw,58px);line-height:1.05;letter-spacing:-.02em;margin:0 0 18px}
+  .lede{font-size:clamp(18px,2.4vw,21px);color:var(--muted);max-width:620px;margin:0 0 30px}
+  .cmd{display:flex;align-items:stretch;background:var(--code);border-radius:12px;overflow:hidden;max-width:760px}
+  .cmd code{flex:1;color:var(--code-ink);font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;padding:16px 18px;overflow-x:auto;white-space:nowrap}
+  .cmd code::before{content:"$ ";opacity:.5}
+  .cmd button{border:0;background:var(--accent);color:#fff;font:600 14px system-ui;padding:0 18px;cursor:pointer;min-width:84px}
+  @media (prefers-color-scheme:dark){.cmd button{color:#0d1411}}
+  .small{font-size:14px;color:var(--muted);margin-top:12px}
+  section{padding:44px 0;border-top:1px solid var(--line)}
+  h2{font-family:ui-serif,Georgia,serif;font-weight:600;font-size:30px;letter-spacing:-.01em;margin:0 0 22px}
+  .asks{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+  .ask{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;font-style:italic}
+  .steps{counter-reset:s;display:grid;gap:14px}
+  .step{display:grid;grid-template-columns:40px 1fr;gap:14px;align-items:start}
+  .step::before{counter-increment:s;content:counter(s);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700}
+  .step b{display:block}
+  .step p{margin:2px 0 0;color:var(--muted)}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .card h3{margin:0 0 6px;font-size:17px}
+  .card p{margin:0;color:var(--muted);font-size:15.5px}
+  .tools{display:flex;flex-wrap:wrap;gap:8px}
+  .tools span{font:13px ui-monospace,Menlo,monospace;background:var(--card);border:1px solid var(--line);padding:5px 10px;border-radius:8px}
+  details{border-bottom:1px solid var(--line);padding:14px 0}
+  summary{cursor:pointer;font-weight:600}
+  details p{color:var(--muted);margin:8px 0 0}
+  footer{padding:36px 0 50px;color:var(--muted);font-size:14px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a class="logo" href="#">📬 outlook-mcp</a>
+    <a class="gh" href="https://github.com/pranav-atreya10/outlook-mcp">View on GitHub →</a>
+  </nav>
+
+  <header>
+    <span class="tag">Free · Open source · MIT</span>
+    <h1>Let Claude handle your Outlook.</h1>
+    <p class="lede">Connect your personal Outlook email and calendar to Claude. Ask it to sum up your inbox, write replies, or plan your week. You run your own copy, so your email never goes through anyone else's server.</p>
+    <div class="cmd">
+      <code id="cmd">git clone https://github.com/pranav-atreya10/outlook-mcp &amp;&amp; cd outlook-mcp &amp;&amp; npm install &amp;&amp; npm run setup</code>
+      <button id="copy" type="button">Copy</button>
+    </div>
+    <p class="small">Needs Node.js 18+ and a free Cloudflare account. Takes about 10 minutes.</p>
+  </header>
+
+  <section>
+    <h2>What you can ask</h2>
+    <div class="asks">
+      <div class="ask">“Summarize my unread emails from today.”</div>
+      <div class="ask">“Reply to Jake and say Thursday works.”</div>
+      <div class="ask">“What's on my calendar this week?”</div>
+      <div class="ask">“Add a dentist appointment Friday at 3pm.”</div>
+      <div class="ask">“Make a study session every Tuesday at 7.”</div>
+      <div class="ask">“Find the email with my flight confirmation.”</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>How setup works</h2>
+    <div class="steps">
+      <div class="step"><div><b>Run the command above</b><p>It asks for your email and time zone, then puts your connector online on Cloudflare for free.</p></div></div>
+      <div class="step"><div><b>Register a free Microsoft app</b><p>The setup tells you exactly what to click and paste. About 5 clicks.</p></div></div>
+      <div class="step"><div><b>Paste your link into Claude</b><p>Settings → Connectors → Add custom connector. Sign in with Microsoft and you're done.</p></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Private by design</h2>
+    <div class="grid2">
+      <div class="card"><h3>You host it</h3><p>Your copy runs on your own Cloudflare account. No middleman sees your email, including the person who made this.</p></div>
+      <div class="card"><h3>Locked to you</h3><p>Only the email you enter during setup can sign in. If none is set, nobody can.</p></div>
+      <div class="card"><h3>Encrypted sign-in</h3><p>Your Microsoft tokens are stored encrypted, and Microsoft sign-in uses modern, secure OAuth.</p></div>
+      <div class="card"><h3>Open source</h3><p>Every line is on GitHub, tested on every change. Read it, change it, or help improve it.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>16 tools</h2>
+    <div class="tools">
+      <span>whoami</span><span>search_emails</span><span>read_email</span><span>send_email</span><span>draft_email</span><span>reply_email</span><span>forward_email</span><span>update_email</span><span>list_mail_folders</span><span>list_events</span><span>get_event</span><span>create_event</span><span>update_event</span><span>delete_event</span><span>stop_repeating_event</span><span>respond_to_event</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Questions</h2>
+    <details><summary>Does it cost anything?</summary><p>No. Cloudflare's free plan easily covers one person, and the Microsoft app is free.</p></details>
+    <details><summary>Which accounts work?</summary><p>Personal Microsoft accounts: @outlook.com, @hotmail.com and @live.com. Work and school accounts aren't supported yet. Want to help add them? See GitHub.</p></details>
+    <details><summary>Can Claude send emails without asking?</summary><p>Each tool is marked as read-only or as one that sends or changes things, and Claude asks for your OK before using connector tools unless you choose “always allow.” You can also turn individual tools off in Claude's connector settings.</p></details>
+    <details><summary>How do I remove it?</summary><p>Disconnect it in Claude's settings, and remove the app at account.live.com/consent/Manage. You can delete the Worker from your Cloudflare dashboard too.</p></details>
+    <details><summary>Found a bug or have an idea?</summary><p><a href="https://github.com/pranav-atreya10/outlook-mcp/issues">Open an issue</a> or send a pull request. Beginners welcome.</p></details>
+  </section>
+
+  <footer>
+    Made by <a href="https://github.com/pranav-atreya10">Pranav Atreya</a>. MIT licensed.<br>
+    An independent open-source project, not made by or affiliated with Microsoft or Anthropic. Outlook is a trademark of Microsoft; Claude is a trademark of Anthropic.
+  </footer>
+</div>
+<script>
+  document.getElementById("copy").addEventListener("click", async (e) => {
+    const text = document.getElementById("cmd").textContent;
+    try { await navigator.clipboard.writeText(text); e.target.textContent = "Copied!"; }
+    catch { e.target.textContent = "Select it"; }
+    setTimeout(() => (e.target.textContent = "Copy"), 1600);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+// Template for your settings. `npm run setup` copies this to wrangler.jsonc and fills it in.
+// To do it by hand instead: copy this file to wrangler.jsonc and replace the <...> parts.
+// wrangler.jsonc is git-ignored, so your email never ends up in the repo.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "outlook-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // Free address: https://outlook-mcp.<your-subdomain>.workers.dev
+  // For your own domain instead, set "workers_dev": false and add:
+  //   "routes": [{ "pattern": "outlook-mcp.example.com", "custom_domain": true }],
+  "workers_dev": true,
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV",
+      // From: npx wrangler kv namespace create OAUTH_KV
+      "id": "<KV_NAMESPACE_ID>"
+    }
+  ],
+  "vars": {
+    // Your calendar's time zone, like "America/New_York" or "Europe/London"
+    "TIME_ZONE": "<TIME_ZONE>",
+    // Only these Microsoft emails can sign in (comma-separated). Required.
+    "ALLOWED_EMAILS": "<YOUR_EMAIL>"
+  },
+  "observability": { "enabled": true }
+}

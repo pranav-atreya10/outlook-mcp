@@ -106,21 +106,37 @@ export interface GraphOptions {
 export async function graph<T = any>(accessToken: string, path: string, opts: GraphOptions = {}): Promise<T> {
   const url = new URL(GRAPH + path);
   for (const [k, v] of Object.entries(opts.query ?? {})) if (v !== undefined) url.searchParams.set(k, v);
-  const res = await fetch(url, {
-    method: opts.method ?? "GET",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      ...(opts.body !== undefined ? { "Content-Type": "application/json" } : {}),
-      ...opts.headers,
-    },
-    body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
-  });
+  const send = () =>
+    fetch(url, {
+      method: opts.method ?? "GET",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        ...(opts.body !== undefined ? { "Content-Type": "application/json" } : {}),
+        ...opts.headers,
+      },
+      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+    });
+
+  let res = await send();
+  // Microsoft asks us to slow down sometimes (429) or has a hiccup (503). Wait and try once more.
+  if (res.status === 429 || res.status === 503) {
+    const wait = Math.min(Number(res.headers.get("Retry-After")) || 2, 10);
+    await new Promise((r) => setTimeout(r, wait * 1000));
+    res = await send();
+  }
+
   if (res.status === 202 || res.status === 204) return undefined as T;
   const text = await res.text();
-  const json = text ? JSON.parse(text) : undefined;
+  let json: any;
+  try {
+    json = text ? JSON.parse(text) : undefined;
+  } catch {
+    json = undefined; // not JSON (some error pages are plain text)
+  }
   if (!res.ok) {
-    const msg = json?.error?.message ?? text ?? res.statusText;
+    const msg = json?.error?.message ?? (text || res.statusText);
     if (res.status === 401) throw new GraphError(401, "Your Microsoft sign-in expired. Disconnect and reconnect the connector in Claude.");
+    if (res.status === 429) throw new GraphError(429, "Microsoft is getting too many requests right now. Wait a minute and try again.");
     throw new GraphError(res.status, `Microsoft Graph error ${res.status}: ${msg}`);
   }
   return json as T;

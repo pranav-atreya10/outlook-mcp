@@ -2,79 +2,59 @@
 
 An [MCP](https://modelcontextprotocol.io) server that lets Claude read, search, send and reply to your Outlook email, and read, add, change and delete your Outlook calendar events. It works with personal Microsoft accounts (@outlook.com, @hotmail.com, @live.com) and runs for free on [Cloudflare Workers](https://workers.cloudflare.com).
 
-Each person hosts their own copy, so your email never passes through anyone else's server.
+Each person hosts their own copy with **one command**, so your email never passes through anyone else's server. Free to run.
+
+[![CI](https://github.com/pranav-atreya10/outlook-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/pranav-atreya10/outlook-mcp/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+**What you can ask Claude:**
+- *"Summarize my unread emails from today"*
+- *"Reply to Jake's email and say I can do Thursday"*
+- *"What's on my calendar this week?"*
+- *"Add a dentist appointment Friday at 3pm"*
+- *"Make a weekly study session every Tuesday at 7"*
 
 **16 tools:** whoami, search_emails, read_email, send_email, draft_email, reply_email, forward_email, update_email, list_mail_folders, list_events, get_event, create_event, update_event, delete_event, stop_repeating_event, respond_to_event
 
-> **Note:** `wrangler.jsonc` in this repo holds the author's own settings (domain, storage ID, allowed email). Swap in your own in step 2 below before you deploy.
-
 ---
 
-## Set up your own copy (about 15 minutes)
+## Set up your own copy (about 10 minutes)
 
-You'll need [Node.js](https://nodejs.org) and a free Cloudflare account.
+You need [Node.js](https://nodejs.org) 18+ and a free [Cloudflare account](https://dash.cloudflare.com/sign-up). Then paste this into a terminal:
 
 ```sh
-git clone https://github.com/pranav-atreya10/outlook-mcp
-cd outlook-mcp
-npm install
-npx wrangler login     # opens your browser to sign in to Cloudflare
+git clone https://github.com/pranav-atreya10/outlook-mcp && cd outlook-mcp && npm install && npm run setup
 ```
 
-### 1. Pick your address
-Your connector needs a web address. Either:
-- **Use a free workers.dev address** (easiest): it will look like `https://outlook-mcp.YOUR-NAME.workers.dev`, or
-- **Use your own domain** if it's already on Cloudflare, like `https://outlook-mcp.example.com`.
+The setup asks for your email and time zone, puts the connector online, and walks you through the one part it can't do for you: registering a free app with Microsoft (about 5 clicks). At the end it prints the link to paste into Claude:
 
-Below, `YOUR-URL` means whichever address you picked.
-
-### 2. Edit `wrangler.jsonc`
-1. Make the storage the connector needs, and copy the `id` it prints:
-   ```sh
-   npx wrangler kv namespace create OAUTH_KV
-   ```
-   Paste that `id` into `kv_namespaces`.
-2. Set your address:
-   - **workers.dev:** delete the `routes` line and set `"workers_dev": true`.
-   - **Your own domain:** change the `pattern` in `routes` to your domain.
-3. Put your Outlook address in `ALLOWED_EMAILS` (for example `"you@outlook.com"`) so only you can sign in.
-4. Change `TIME_ZONE` if you're not on New York time (use a name like `"Europe/London"`).
-
-### 3. Register an app with Microsoft
-This gives your connector permission to sign in with Microsoft.
-
-1. Go to **https://entra.microsoft.com** and sign in with your Outlook account. (If it asks you to make a tenant, use **https://portal.azure.com** instead and go to App registrations.)
-2. Open **App registrations**, then click **New registration**.
-3. Fill it in:
-   - **Name:** `Claude Outlook connector`
-   - **Supported account types:** **Personal Microsoft accounts only**
-   - **Redirect URI:** choose **Web** and enter `YOUR-URL/callback`
-4. Click **Register**. Copy the **Application (client) ID**.
-5. Go to **Certificates & secrets**, then **New client secret**. Pick 24 months, click Add, and copy the **Value** right away. It only shows once.
-6. Go to **API permissions**, then **Add a permission**, then **Microsoft Graph**, then **Delegated**. Add:
-   `Mail.ReadWrite`, `Mail.Send`, `Calendars.ReadWrite`, `User.Read`, `offline_access`
-
-### 4. Put it online
-```sh
-npx wrangler secret put MS_CLIENT_ID      # paste the Application (client) ID
-npx wrangler secret put MS_CLIENT_SECRET  # paste the secret Value
-npm run deploy
-```
-Wait a minute, then open `YOUR-URL`. You should see "Outlook connector is running ✅".
-
-### 5. Add it to Claude
 1. In Claude, go to **Settings → Connectors → Add custom connector**.
-2. Name: `Outlook`. URL: `YOUR-URL/mcp`
+2. Name: `Outlook`. URL: the link setup gave you (it ends in `/mcp`).
 3. Click **Connect**, click **Continue to Microsoft**, sign in, and accept.
 
-Done. Try asking: *"What's on my Outlook calendar this week?"*
+Try asking: *"What's on my Outlook calendar this week?"*
+
+Want to change something later (email, time zone, domain)? Just run `npm run setup` again. It reuses your storage and Microsoft app.
+
+<details>
+<summary><b>Prefer to set it up by hand?</b></summary>
+
+1. `npx wrangler login`, then `npx wrangler kv namespace create outlook-mcp-oauth` and copy the `id`.
+2. Copy `wrangler.example.jsonc` to `wrangler.jsonc` and fill in the `<...>` parts (storage `id`, your time zone, your email). For your own domain, follow the comment in the file.
+3. `npm run deploy` and note your address (`YOUR-URL`).
+4. At [entra.microsoft.com](https://entra.microsoft.com) → **App registrations** → **New registration**: account type **Personal Microsoft accounts only**, redirect URI **Web** → `YOUR-URL/callback`. Copy the **Application (client) ID**.
+5. **Certificates & secrets** → **New client secret** → copy the **Value**.
+6. **API permissions** → Microsoft Graph → **Delegated**: `Mail.ReadWrite`, `Mail.Send`, `Calendars.ReadWrite`, `User.Read`, `offline_access`.
+7. `npx wrangler secret put MS_CLIENT_ID` and `npx wrangler secret put MS_CLIENT_SECRET`.
+8. Add `YOUR-URL/mcp` to Claude as above.
+</details>
 
 ---
 
 ## If something breaks
-- **"redirect_uri mismatch" from Microsoft:** the redirect URI must be exactly `YOUR-URL/callback`.
+- **"redirect_uri mismatch" from Microsoft:** the redirect URI in your Microsoft app must be exactly your address + `/callback`.
 - **Deploy says the domain isn't on your account:** make sure your domain shows up under **Websites** in the same Cloudflare account you logged in to, or switch to a workers.dev address.
-- **"This account isn't allowed":** fix the email in `ALLOWED_EMAILS` and run `npm run deploy` again.
+- **"This account isn't allowed":** run `npm run setup` again and enter the email you sign in with.
+- **Wrong Microsoft app details:** run `npm run setup -- --reset-microsoft`.
 - **Tools stop working after a long time:** disconnect and reconnect the connector in Claude.
 - **See errors:** run `npx wrangler tail` while you use it.
 
@@ -89,19 +69,21 @@ Done. Try asking: *"What's on my Outlook calendar this week?"*
 | `src/index.ts` | Sign-in pages and the OAuth flow |
 | `src/microsoft.ts` | Talking to Microsoft's sign-in service |
 | `src/tools.ts` | All 16 tools |
-| `test/listtools.ts` | A quick self-test |
+| `scripts/setup.mjs` | The one-command setup |
+| `test/` | Tests (they never touch real email) |
 
 ## Testing
 ```sh
 npm run typecheck
 npm test
 ```
-`npm test` checks that all the tools load. It uses a fake account, so it won't touch your real email.
+`npm test` checks the tools and the setup script using fake accounts, so it never touches real email. It runs automatically on every pull request.
 
 ## Safety notes
-- Your Microsoft tokens are stored encrypted on Cloudflare. Only your connector can unlock them.
-- Never share `MS_CLIENT_SECRET` or commit `.dev.vars`.
-- Keep `ALLOWED_EMAILS` set. If it's empty, anyone who finds your address could connect their own account to it.
+- Your Microsoft tokens are stored encrypted on your own Cloudflare account.
+- Only the emails you entered can sign in. If none are set, nobody can.
+- Never share `MS_CLIENT_SECRET`. Your `wrangler.jsonc` is git-ignored so your email stays out of the repo.
+- More in [SECURITY.md](SECURITY.md), including how to report a problem.
 
 ## Contributing
 Help is welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get started and some ideas for first changes.
