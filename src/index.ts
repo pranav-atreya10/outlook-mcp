@@ -1,7 +1,7 @@
 // Outlook connector for Claude (personal Microsoft accounts).
 //
 // How it works:
-//   1. Claude connects to https://outlook-mcp.thoughtstudio.xyz/mcp and gets told to sign in.
+//   1. Claude connects to <your address>/mcp and gets told to sign in.
 //   2. You approve on a small page here, then sign in with Microsoft.
 //   3. Microsoft sends you back to /callback; we keep your Microsoft tokens (encrypted)
 //      and Claude gets its own token for this server.
@@ -25,7 +25,7 @@ interface Env {
   OAUTH_PROVIDER: OAuthHelpers;
   MS_CLIENT_ID: string;
   MS_CLIENT_SECRET: string;
-  /** Comma-separated Microsoft emails allowed to use this connector. Empty = anyone. */
+  /** Comma-separated Microsoft emails allowed to use this connector. Required: empty = nobody. */
   ALLOWED_EMAILS?: string;
   TIME_ZONE?: string;
 }
@@ -48,6 +48,10 @@ const escape = (v: string) => v.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)}
 
 function page(title: string, inner: string, headers = new Headers(), status = 200) {
   headers.set("Content-Type", "text/html; charset=utf-8");
+  // Stop other sites from showing these pages in a hidden frame (clickjacking).
+  headers.set("X-Frame-Options", "DENY");
+  headers.set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'");
+  headers.set("Referrer-Policy", "no-referrer");
   const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${escape(title)}</title>
 <style>
@@ -150,7 +154,17 @@ async function handleCallback(req: Request, env: Env): Promise<Response> {
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
-  if (allowed.length && !allowed.includes(me.email)) {
+  // Fail closed: if no emails are set, nobody can sign in. Otherwise a stranger who found
+  // your address could connect their own account and use your Microsoft app.
+  if (!allowed.length) {
+    return page(
+      "Not set up yet",
+      "<h1>This connector isn't set up yet</h1><p>Its owner needs to set <code>ALLOWED_EMAILS</code>. Run <code>npm run setup</code> again.</p>",
+      headers,
+      403,
+    );
+  }
+  if (!allowed.includes(me.email)) {
     return page(
       "Not allowed",
       `<h1>This account isn't allowed</h1><p>${escape(me.email)} isn't on this connector's allowed list.</p>`,

@@ -97,7 +97,7 @@ const dateTime = z
   .describe("Local date and time, like 2026-10-30T15:00:00 (no Z). For all-day events use midnight.");
 
 export function buildServer(props: Props, defaultTimeZone: string): McpServer {
-  const server = new McpServer({ name: "outlook-personal", version: "1.0.0" });
+  const server = new McpServer({ name: "outlook-personal", version: "1.1.0" });
   const token = props.accessToken;
   const tzHeader = (tz?: string) => ({ Prefer: `outlook.timezone="${tz ?? defaultTimeZone}"` });
 
